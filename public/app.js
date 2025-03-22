@@ -1,5 +1,13 @@
-import firebaseConfig from './config.js';
-
+const firebaseConfig = {
+  apiKey: "AIzaSyBIScAendwuujYUWGU-gOiOK9dfo8rZFL8",
+  authDomain: "arithmetic-game-bfedc.firebaseapp.com",
+  databaseURL: "https://arithmetic-game-bfedc-default-rtdb.firebaseio.com",
+  projectId: "arithmetic-game-bfedc",
+  storageBucket: "arithmetic-game-bfedc.firebasestorage.app",
+  messagingSenderId: "825999301683",
+  appId: "1:825999301683:web:216b4bdc17990315069746",
+  measurementId: "G-5R42L56XTH"
+};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -10,6 +18,7 @@ let currentScore = 0;
 let timeLeft = 120; // seconds
 let timer = null;
 let currentProblem = null;
+let scoreChart = null; // Reference to Chart.js chart
 
 // DOM elements for pages
 const pages = {
@@ -261,59 +270,132 @@ function endGame() {
   
   // Also add to a global leaderboard node, including the username
   const leaderboardRef = db.ref('leaderboard').push();
-  leaderboardRef.set({ uid: currentUser.uid, username: document.getElementById('user-welcome').textContent, score: currentScore, date: date });
+  leaderboardRef.set({ 
+    uid: currentUser.uid, 
+    username: document.getElementById('user-welcome').textContent, 
+    score: currentScore, 
+    date: date 
+  });
   
-  // Update game over page with final score and history
+  // Update game over page with final score and graph
   document.getElementById('final-score').textContent = currentScore;
-  populateUserHistory();
-  populateMiniLeaderboard();
+  populateUserChart(); // Use Chart.js to display the score history graph
   showPage('game-over-page');
 }
 
-// Populate user history from Firebase
+// New function: populateUserChart()
+// This function retrieves the user's last 10 scores and renders a Chart.js line chart with fixed boundaries.
+function populateUserChart() {
+  const ctx = document.getElementById('scoreChart').getContext('2d');
+  
+  db.ref('users/' + currentUser.uid + '/scores').once('value', snapshot => {
+    const scoresObj = snapshot.val() || {};
+    let scoresArray = Object.values(scoresObj);
+    
+    // Get the last 10 scores (if there are less than 10, use all)
+    scoresArray = scoresArray.slice(-10);
+    
+    // Extract labels (dates) and data (scores)
+    const labels = scoresArray.map(score => score.date);
+    const data = scoresArray.map(score => score.score);
+    
+    // Compute the all-time high score from all available scores
+    const allScores = Object.values(scoresObj).map(score => score.score);
+    const highScore = allScores.length ? Math.max(...allScores) : 0;
+    
+    // Compute a fixed maximum for the y-axis.
+    // Here, we round up the high score to the next multiple of 10, with a minimum of 10.
+    const fixedMax = Math.max(10, Math.ceil(highScore / 10) * 10);
+    
+    // If a chart instance already exists, destroy it before creating a new one.
+    if (scoreChart) {
+      scoreChart.destroy();
+    }
+    
+    scoreChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Score',
+          data: data,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(0, 0, 255, 0.1)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              // When hovering, show score and date.
+              label: function(context) {
+                const score = context.parsed.y;
+                const date = context.label;
+                return `Score: ${score} (Date: ${date})`;
+              }
+            }
+          },
+          annotation: {
+            annotations: {
+              highScoreLine: {
+                type: 'line',
+                yMin: highScore,
+                yMax: highScore,
+                borderColor: 'red',
+                borderWidth: 2,
+                label: {
+                  enabled: true,
+                  content: 'All-Time High',
+                  position: 'end',
+                  backgroundColor: 'rgba(255, 0, 0, 0.7)',
+                  font: {
+                    style: 'bold'
+                  }
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            min: 0,
+            max: fixedMax
+          }
+        },
+        maintainAspectRatio: false
+      }
+    });
+  });
+}
+
+
+// Populate user history from Firebase (kept as a table for quick review)
 function populateUserHistory() {
   const historyContainer = document.getElementById('user-history');
   historyContainer.innerHTML = '';
   
-  db.ref('users/' + currentUser.uid + '/scores').orderByKey().limitToLast(5).once('value', snapshot => {
-    const scores = snapshot.val();
-    if (!scores) {
-      historyContainer.innerHTML = '<p>No previous games</p>';
-      return;
-    }
-    const scoresArray = Object.values(scores).reverse();
-    let table = '<table class="leaderboard"><thead><tr><th>Game</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-    scoresArray.forEach((score, index) => {
-      table += `<tr><td>${index + 1}</td><td>${score.score}</td><td>${score.date}</td></tr>`;
+  db.ref('users/' + currentUser.uid + '/scores')
+    .orderByKey()
+    .limitToLast(5)
+    .once('value', snapshot => {
+      const scores = snapshot.val();
+      if (!scores) {
+        historyContainer.innerHTML = '<p>No previous games</p>';
+        return;
+      }
+      const scoresArray = Object.values(scores).reverse();
+      let table = '<table class="leaderboard"><thead><tr><th>Game</th><th>Score</th><th>Date</th></tr></thead><tbody>';
+      scoresArray.forEach((score, index) => {
+        table += `<tr><td>${index + 1}</td><td>${score.score}</td><td>${score.date}</td></tr>`;
+      });
+      table += '</tbody></table>';
+      historyContainer.innerHTML = table;
     });
-    table += '</tbody></table>';
-    historyContainer.innerHTML = table;
-  });
-}
-
-// Populate mini leaderboard (top 5)
-function populateMiniLeaderboard() {
-  const leaderboardBody = document.getElementById('mini-leaderboard-body');
-  leaderboardBody.innerHTML = '';
-  
-  db.ref('leaderboard').orderByChild('score').limitToLast(5).once('value', snapshot => {
-    let entries = [];
-    snapshot.forEach(childSnapshot => {
-      entries.push(childSnapshot.val());
-    });
-    // Sort highest scores first
-    entries.sort((a, b) => b.score - a.score);
-    entries.forEach((entry, index) => {
-      leaderboardBody.innerHTML += `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${entry.username}</td>
-          <td>${entry.score}</td>
-          <td>${entry.date}</td>
-        </tr>
-      `;
-    });
-  });
 }
 
 // Populate full leaderboard
@@ -321,24 +403,26 @@ function populateLeaderboard() {
   const leaderboardBody = document.getElementById('full-leaderboard-body');
   leaderboardBody.innerHTML = '';
   
-  db.ref('leaderboard').orderByChild('score').once('value', snapshot => {
-    let entries = [];
-    snapshot.forEach(childSnapshot => {
-      entries.push(childSnapshot.val());
+  db.ref('leaderboard')
+    .orderByChild('score')
+    .once('value', snapshot => {
+      let entries = [];
+      snapshot.forEach(childSnapshot => {
+        entries.push(childSnapshot.val());
+      });
+      // Sort in descending order
+      entries.sort((a, b) => b.score - a.score);
+      entries.forEach((entry, index) => {
+        leaderboardBody.innerHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${entry.username}</td>
+            <td>${entry.score}</td>
+            <td>${entry.date}</td>
+          </tr>
+        `;
+      });
     });
-    // Sort in descending order
-    entries.sort((a, b) => b.score - a.score);
-    entries.forEach((entry, index) => {
-      leaderboardBody.innerHTML += `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${entry.username}</td>
-          <td>${entry.score}</td>
-          <td>${entry.date}</td>
-        </tr>
-      `;
-    });
-  });
 }
 
 // Populate user stats from Firebase
@@ -389,7 +473,6 @@ function populateUserStats() {
     statsContainer.innerHTML = html;
   });
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeEventListeners();

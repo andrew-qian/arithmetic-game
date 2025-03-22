@@ -10,6 +10,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- Chart.js and Annotation Plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
 </head>
 <body>
   <!-- Sign In Page -->
@@ -75,23 +78,12 @@
       Final Score: <span id="final-score">0</span>
     </div>
     <div class="user-stats">
-      <h2>Your Last 5 Games</h2>
-      <div id="user-history"></div>
+      <h2>Your Score History</h2>
+      <!-- Chart container with fixed dimensions -->
+      <div class="chart-container">
+        <canvas id="scoreChart"></canvas>
+      </div>
     </div>
-    <h2>Leaderboard</h2>
-    <table class="leaderboard" id="mini-leaderboard">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Player</th>
-          <th>Score</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody id="mini-leaderboard-body">
-        <!-- Leaderboard entries will be added here -->
-      </tbody>
-    </table>
     <div style="text-align: center; margin-top: 20px;">
       <button id="play-again-button">Play Again</button>
       <button id="back-to-menu-button">Back to Menu</button>
