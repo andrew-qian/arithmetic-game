@@ -277,11 +277,14 @@ function endGame() {
     date: date 
   });
   
-  // Update game over page with final score and graph
+  // Update game over page with final score, chart, and global leaderboard
   document.getElementById('final-score').textContent = currentScore;
-  populateUserChart(); // Use Chart.js to display the score history graph
+  populateUserChart(); // Updates the chart on the left column
+  populateGlobalLeaderboard(); // Updates the global leaderboard on the right column
+  
   showPage('game-over-page');
 }
+
 
 // New function: populateUserChart()
 // This function retrieves the user's last 10 scores and renders a Chart.js line chart with fixed boundaries.
@@ -397,6 +400,37 @@ function populateUserHistory() {
       historyContainer.innerHTML = table;
     });
 }
+
+// New function to populate the global leaderboard for the game over screen
+function populateGlobalLeaderboard() {
+  const container = document.getElementById('global-leaderboard-container');
+  container.innerHTML = '';
+  
+  db.ref('leaderboard')
+    .orderByChild('score')
+    .once('value', snapshot => {
+      let entries = [];
+      snapshot.forEach(childSnapshot => {
+        entries.push(childSnapshot.val());
+      });
+      // Sort in descending order
+      entries.sort((a, b) => b.score - a.score);
+      
+      // Build an HTML table for the top 5 entries
+      let html = '<table class="leaderboard"><thead><tr><th>Rank</th><th>Player</th><th>Score</th><th>Date</th></tr></thead><tbody>';
+      entries.slice(0, 5).forEach((entry, index) => {
+        html += `<tr>
+                   <td>${index + 1}</td>
+                   <td>${entry.username}</td>
+                   <td>${entry.score}</td>
+                   <td>${entry.date}</td>
+                 </tr>`;
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    });
+}
+
 
 // Populate full leaderboard
 function populateLeaderboard() {

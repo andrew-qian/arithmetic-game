@@ -77,18 +77,32 @@
     <div style="text-align: center; font-size: 24px; margin: 20px 0;">
       Final Score: <span id="final-score">0</span>
     </div>
-    <div class="user-stats">
-      <h2>Your Score History</h2>
-      <!-- Chart container with fixed dimensions -->
-      <div class="chart-container">
-        <canvas id="scoreChart"></canvas>
+    
+    <div class="game-over-content">
+      <!-- Left column: Chart -->
+      <div class="chart-wrapper">
+        <h2>Your Score History</h2>
+        <div class="chart-container">
+          <canvas id="scoreChart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Right column: Global Leaderboard -->
+      <div class="global-leaderboard">
+        <h2>Global Leaderboard</h2>
+        <div id="global-leaderboard-container">
+          <!-- Global leaderboard entries will be populated here -->
+        </div>
       </div>
     </div>
-    <div style="text-align: center; margin-top: 20px;">
+    
+    <!-- Buttons below the two columns -->
+    <div class="game-over-buttons" style="text-align: center; margin-top: 20px;">
       <button id="play-again-button">Play Again</button>
       <button id="back-to-menu-button">Back to Menu</button>
     </div>
   </div>
+
   
   <!-- Leaderboard Page -->
   <div id="leaderboard-page" class="container hidden">
