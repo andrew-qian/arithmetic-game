@@ -275,17 +275,14 @@ function endGame() {
   clearInterval(timer);
   
   const date = new Date().toLocaleDateString();
-  // Calculate current game's duration in seconds
-  const currentGameDuration = 120 - timeLeft;
-  
-  // Accumulate session playtime
+  const currentGameDuration = 120 - timeLeft; // current game duration in seconds
   sessionPlaytimeTotal += currentGameDuration;
   
-  // Save game score to the user's scores in the database
+  // Save game score
   const scoreRef = db.ref('users/' + currentUser.uid + '/scores').push();
   scoreRef.set({ score: currentScore, date: date });
   
-  // Also add to global leaderboard
+  // Add to global leaderboard
   const leaderboardRef = db.ref('leaderboard').push();
   leaderboardRef.set({ 
     uid: currentUser.uid, 
@@ -301,17 +298,14 @@ function endGame() {
     const newTotalPlaytime = previousPlaytime + currentGameDuration;
     userRef.update({ totalPlaytime: newTotalPlaytime });
     
-    // Update the fixed playtime element (top left of screen)
-    document.getElementById('playtime-fixed').innerHTML = `
+    // Update playtime info in the fixed container within the game over page
+    document.getElementById('playtime-info').innerHTML = `
       <p>Session Playtime: ${formatTime(sessionPlaytimeTotal)}</p>
       <p>Total Playtime: ${formatTime(newTotalPlaytime)}</p>
     `;
   });
   
-  // Update final score display
   document.getElementById('final-score').textContent = currentScore;
-  
-  // Update chart and global leaderboard
   populateUserChart();
   populateGlobalLeaderboard();
   

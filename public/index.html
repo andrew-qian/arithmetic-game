@@ -14,9 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
 </head>
-<body>
-  <div id="playtime-fixed"></div>
-  
+<body>  
   <!-- Sign In Page -->
   <div id="sign-in-page" class="container">
     <h1>Arithmetic Speed Drill</h1>
@@ -73,9 +71,14 @@
     </div>
   </div>
   
-  <div id="game-over-page" class="container hidden">
+  <!-- Game Over Page -->
+  <div id="game-over-page" class="container hidden" style="position: relative;">
+    <!-- Fixed playtime info for this page only -->
+    <div id="playtime-info" class="playtime-info">
+      <!-- Session and total playtime will be inserted here -->
+    </div>
+
     <h1>Game Over!</h1>
-    <!-- Final score remains directly below the Game Over! text -->
     <div style="text-align: center; font-size: 24px; margin: 20px 0;">
       Final Score: <span id="final-score">0</span>
     </div>
@@ -104,6 +107,7 @@
       <button id="back-to-menu-button">Back to Menu</button>
     </div>
   </div>
+
 
   
   <!-- Leaderboard Page -->
