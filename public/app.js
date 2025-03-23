@@ -1,3 +1,5 @@
+let sessionPlaytimeTotal = 0;
+
 const firebaseConfig = {
   apiKey: "AIzaSyBIScAendwuujYUWGU-gOiOK9dfo8rZFL8",
   authDomain: "arithmetic-game-bfedc.firebaseapp.com",
@@ -259,10 +261,26 @@ function generateProblem() {
   document.getElementById('problem-text').textContent = problemText;
 }
 
+// Helper function to format seconds into hours, minutes, seconds
+function formatTime(seconds) {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  // return `${hrs}h ${mins}m ${secs}s`;
+  return `${hrs}h ${mins}m`
+}
+
+
 function endGame() {
   clearInterval(timer);
   
   const date = new Date().toLocaleDateString();
+  
+  // Calculate current game's duration (in seconds)
+  const currentGameDuration = 120 - timeLeft;
+  
+  // Accumulate session playtime (in seconds)
+  sessionPlaytimeTotal += currentGameDuration;
   
   // Save the game score to the user's scores in the database
   const scoreRef = db.ref('users/' + currentUser.uid + '/scores').push();
@@ -277,10 +295,26 @@ function endGame() {
     date: date 
   });
   
-  // Update game over page with final score, chart, and global leaderboard
+  // Update user's total playtime in Firebase:
+  const userRef = db.ref('users/' + currentUser.uid);
+  userRef.child('totalPlaytime').once('value').then(snapshot => {
+    const previousPlaytime = snapshot.val() || 0;
+    const newTotalPlaytime = previousPlaytime + currentGameDuration;
+    userRef.update({ totalPlaytime: newTotalPlaytime });
+    
+    // Update the playtime info on the Game Over screen using the formatTime helper
+    document.getElementById('playtime-info').innerHTML = `
+      <p>Session Playtime: ${formatTime(sessionPlaytimeTotal)}</p>
+      <p>Total Playtime: ${formatTime(newTotalPlaytime)}</p>
+    `;
+  });
+  
+  // Update final score display
   document.getElementById('final-score').textContent = currentScore;
-  populateUserChart(); // Updates the chart on the left column
-  populateGlobalLeaderboard(); // Updates the global leaderboard on the right column
+  
+  // Update the chart and global leaderboard
+  populateUserChart();
+  populateGlobalLeaderboard();
   
   showPage('game-over-page');
 }
@@ -460,7 +494,6 @@ function populateLeaderboard() {
     });
 }
 
-// Populate user stats from Firebase
 function populateUserStats() {
   const statsContainer = document.getElementById('detailed-stats');
   statsContainer.innerHTML = '<p>Loading...</p>';
@@ -482,6 +515,7 @@ function populateUserStats() {
     const totalProblems = userData.stats ? userData.stats.totalProblems : 0;
     const correctAnswers = userData.stats ? userData.stats.correctAnswers : 0;
     const accuracy = totalProblems ? ((correctAnswers / totalProblems) * 100).toFixed(1) : 0;
+    const totalPlaytime = userData.totalPlaytime || 0;
     
     let html = `
       <h3>Summary</h3>
@@ -489,6 +523,7 @@ function populateUserStats() {
       <p>Best Score: ${bestScore}</p>
       <p>Average Score: ${averageScore}</p>
       <p>Total Problems Attempted: ${totalProblems}</p>
+      <p>Total Playtime: ${formatTime(totalPlaytime)}</p>
       <h3>Recent Games</h3>
     `;
     
@@ -506,6 +541,8 @@ function populateUserStats() {
     statsContainer.innerHTML = html;
   });
 }
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeEventListeners();
