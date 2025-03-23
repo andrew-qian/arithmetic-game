@@ -446,7 +446,8 @@ function populateLeaderboard() {
       });
       // Sort in descending order
       entries.sort((a, b) => b.score - a.score);
-      entries.forEach((entry, index) => {
+      // Limit to the top 10 entries
+      entries.slice(0, 10).forEach((entry, index) => {
         leaderboardBody.innerHTML += `
           <tr>
             <td>${index + 1}</td>
@@ -488,8 +489,6 @@ function populateUserStats() {
       <p>Best Score: ${bestScore}</p>
       <p>Average Score: ${averageScore}</p>
       <p>Total Problems Attempted: ${totalProblems}</p>
-      <p>Correct Answers: ${correctAnswers}</p>
-      <p>Accuracy: ${accuracy}%</p>
       <h3>Recent Games</h3>
     `;
     
