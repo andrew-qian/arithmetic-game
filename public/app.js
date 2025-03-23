@@ -239,9 +239,9 @@ function generateProblem() {
     case 'subtraction':
       num1 = Math.floor(Math.random() * 99) + 2;
       num2 = Math.floor(Math.random() * 99) + 2;
-      if (num1 < num2) [num1, num2] = [num2, num1];
-      answer = num1 - num2;
-      problemText = `${num1} - ${num2} =`;
+      num3 = num1 + num2
+      answer = num1;
+      problemText = `${num3} - ${num2} =`;
       break;
     case 'multiplication':
       num1 = Math.floor(Math.random() * 11) + 2;
@@ -250,10 +250,11 @@ function generateProblem() {
       problemText = `${num1} × ${num2} =`;
       break;
     case 'division':
-      num2 = Math.floor(Math.random() * 11) + 2;
-      answer = Math.floor(Math.random() * 99) + 2;
-      num1 = num2 * answer;
-      problemText = `${num1} ÷ ${num2} =`;
+      num1 = Math.floor(Math.random() * 11) + 2;
+      num2 = Math.floor(Math.random() * 99) + 2;
+      num3 = num1 * num2;
+      answer = num2
+      problemText = `${num3} ÷ ${num1} =`;
       break;
   }
   
