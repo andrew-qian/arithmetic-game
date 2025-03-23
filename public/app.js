@@ -275,18 +275,17 @@ function endGame() {
   clearInterval(timer);
   
   const date = new Date().toLocaleDateString();
-  
-  // Calculate current game's duration (in seconds)
+  // Calculate current game's duration in seconds
   const currentGameDuration = 120 - timeLeft;
   
-  // Accumulate session playtime (in seconds)
+  // Accumulate session playtime
   sessionPlaytimeTotal += currentGameDuration;
   
-  // Save the game score to the user's scores in the database
+  // Save game score to the user's scores in the database
   const scoreRef = db.ref('users/' + currentUser.uid + '/scores').push();
   scoreRef.set({ score: currentScore, date: date });
   
-  // Also add to a global leaderboard node, including the username
+  // Also add to global leaderboard
   const leaderboardRef = db.ref('leaderboard').push();
   leaderboardRef.set({ 
     uid: currentUser.uid, 
@@ -295,15 +294,15 @@ function endGame() {
     date: date 
   });
   
-  // Update user's total playtime in Firebase:
+  // Update user's total playtime in Firebase
   const userRef = db.ref('users/' + currentUser.uid);
   userRef.child('totalPlaytime').once('value').then(snapshot => {
     const previousPlaytime = snapshot.val() || 0;
     const newTotalPlaytime = previousPlaytime + currentGameDuration;
     userRef.update({ totalPlaytime: newTotalPlaytime });
     
-    // Update the playtime info on the Game Over screen using the formatTime helper
-    document.getElementById('playtime-info').innerHTML = `
+    // Update the fixed playtime element (top left of screen)
+    document.getElementById('playtime-fixed').innerHTML = `
       <p>Session Playtime: ${formatTime(sessionPlaytimeTotal)}</p>
       <p>Total Playtime: ${formatTime(newTotalPlaytime)}</p>
     `;
@@ -312,7 +311,7 @@ function endGame() {
   // Update final score display
   document.getElementById('final-score').textContent = currentScore;
   
-  // Update the chart and global leaderboard
+  // Update chart and global leaderboard
   populateUserChart();
   populateGlobalLeaderboard();
   

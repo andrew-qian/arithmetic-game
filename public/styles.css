@@ -159,4 +159,14 @@
   display: block;
 }
 
+#playtime-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 20px 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  z-index: 1000;
+}
+
   
