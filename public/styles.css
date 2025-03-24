@@ -177,5 +177,13 @@
   border-radius: 5px;
 }
 
+/* Style for the lifetime chart on the Stats page */
+#lifetimeChart {
+  width: 100% !important;
+  height: 300px !important;
+  display: block;
+}
+
+
 
   

@@ -60,9 +60,12 @@ function initializeEventListeners() {
     showPage('leaderboard-page');
   });
   document.getElementById('view-stats-button').addEventListener('click', () => {
-    populateUserStats();
+    populateUserStats();  // This function updates the summary and calls populateLifetimeChart() later.
     showPage('stats-page');
+    // Optionally, add a short delay to ensure the canvas is rendered:
+    setTimeout(populateLifetimeChart, 100);
   });
+  
   document.getElementById('sign-out-button').addEventListener('click', handleSignOut);
   
   // Game Page: Check answer input
@@ -488,6 +491,87 @@ function populateLeaderboard() {
     });
 }
 
+// New global variable for the lifetime chart instance
+let lifetimeChart = null;
+
+// New function to populate a chart on the Stats page that shows the user's lifetime scores.
+function populateLifetimeChart() {
+  const canvas = document.getElementById('lifetimeChart');
+  if (!canvas) {
+    console.error("Canvas element with id 'lifetimeChart' not found.");
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+  
+  db.ref('users/' + currentUser.uid + '/scores').once('value', snapshot => {
+    const scoresObj = snapshot.val() || {};
+    const scoresArray = Object.values(scoresObj);
+    
+    // For the x-axis, use blank labels while storing dates for tooltips.
+    const xLabels = scoresArray.map(() => ""); 
+    const data = scoresArray.map(score => score.score);
+    const tooltipDates = scoresArray.map(score => score.date);
+    
+    // Compute fixed y-axis maximum
+    const highScore = scoresArray.length ? Math.max(...scoresArray.map(s => s.score)) : 0;
+    const fixedMax = Math.max(10, Math.ceil(highScore / 10) * 10);
+    
+    if (lifetimeChart) {
+      lifetimeChart.destroy();
+    }
+    
+    lifetimeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: xLabels,
+        datasets: [{
+          label: 'Score',
+          data: data,
+          borderColor: 'green',
+          backgroundColor: 'rgba(0, 255, 0, 0.1)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        plugins: {
+          title: {
+            display: true,
+            text: 'Lifetime Score Progression',
+            font: {
+              size: 18
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const score = context.parsed.y;
+                const index = context.dataIndex;
+                const date = tooltipDates[index];
+                return [`Score: ${score}`, `Date: ${date}`];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { display: false },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            min: 0,
+            max: fixedMax
+          }
+        },
+        maintainAspectRatio: false
+      }
+    });
+  });
+}
+
 function populateUserStats() {
   const statsContainer = document.getElementById('detailed-stats');
   statsContainer.innerHTML = '<p>Loading...</p>';
@@ -511,6 +595,7 @@ function populateUserStats() {
     const accuracy = totalProblems ? ((correctAnswers / totalProblems) * 100).toFixed(1) : 0;
     const totalPlaytime = userData.totalPlaytime || 0;
     
+    // Build the summary HTML, then add a container for the chart.
     let html = `
       <h3>Summary</h3>
       <p>Games Played: ${scoresArray.length}</p>
@@ -518,24 +603,17 @@ function populateUserStats() {
       <p>Average Score: ${averageScore}</p>
       <p>Total Problems Attempted: ${totalProblems}</p>
       <p>Total Playtime: ${formatTime(totalPlaytime)}</p>
-      <h3>Recent Games</h3>
+      <div class="chart-section" style="padding-top: 20px;">
+        <canvas id="lifetimeChart"></canvas>
+      </div>
     `;
-    
-    if (scoresArray.length === 0) {
-      html += '<p>No games played yet</p>';
-      statsContainer.innerHTML = html;
-      return;
-    }
-    
-    html += '<table class="leaderboard"><thead><tr><th>Game</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-    scoresArray.reverse().slice(0, 10).forEach((score, index) => {
-      html += `<tr><td>${index + 1}</td><td>${score.score}</td><td>${score.date}</td></tr>`;
-    });
-    html += '</tbody></table>';
     statsContainer.innerHTML = html;
+    
+    // Ensure the stats page is visible, then populate the lifetime chart.
+    showPage('stats-page');
+    populateLifetimeChart();
   });
 }
-
 
 
 document.addEventListener('DOMContentLoaded', () => {
