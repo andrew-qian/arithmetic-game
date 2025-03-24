@@ -113,19 +113,21 @@
   <!-- Leaderboard Page -->
   <div id="leaderboard-page" class="container hidden">
     <h1>Leaderboard</h1>
-    <table class="leaderboard" id="full-leaderboard">
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Player</th>
-          <th>Score</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody id="full-leaderboard-body">
-        <!-- Leaderboard entries will be added here -->
-      </tbody>
-    </table>
+    <!-- <div id="full-leaderboard-container"> figure out use --> 
+      <table class="leaderboard" id="full-leaderboard">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Score</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="full-leaderboard-body">
+          <!-- Leaderboard entries will be added here -->
+        </tbody>
+      </table>
+    <!-- </div> -->
     <div style="text-align: center; margin-top: 20px;">
       <button id="leaderboard-back-button">Back to Menu</button>
     </div>
@@ -141,6 +143,8 @@
       <button id="stats-back-button">Back to Menu</button>
     </div>
   </div>
+
+  <button id="darkModeToggle" class="dark-toggle"></button>
   
   <script src="app.js"></script>
 </body>

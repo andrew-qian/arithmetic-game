@@ -317,10 +317,13 @@ function endGame() {
 }
 
 
-// New function: populateUserChart()
-// This function retrieves the user's last 10 scores and renders a Chart.js line chart with fixed boundaries.
 function populateUserChart() {
-  const ctx = document.getElementById('scoreChart').getContext('2d');
+  const canvas = document.getElementById('scoreChart');
+  if (!canvas) {
+    console.error("Canvas element with id 'scoreChart' not found.");
+    return;
+  }
+  const ctx = canvas.getContext('2d');
   
   db.ref('users/' + currentUser.uid + '/scores').once('value', snapshot => {
     const scoresObj = snapshot.val() || {};
@@ -338,10 +341,16 @@ function populateUserChart() {
     const highScore = allScores.length ? Math.max(...allScores) : 0;
     
     // Compute a fixed maximum for the y-axis.
-    // Here, we round up the high score to the next multiple of 10, with a minimum of 10.
     const fixedMax = Math.max(10, Math.ceil(highScore / 10) * 10);
     
-    // If a chart instance already exists, destroy it before creating a new one.
+    // Check for dark mode
+    const darkMode = document.body.classList.contains('dark');
+    
+    // Set colors based on mode:
+    const datasetBorderColor = darkMode ? 'rgba(173,216,230,1)' : 'blue'; // lighter blue in dark mode (lightblue)
+    const datasetBackgroundColor = darkMode ? 'rgba(173,216,230,0.3)' : 'rgba(0, 0, 255, 0.1)';
+    const annotationBorderColor = darkMode ? 'rgba(255,160,122,1)' : 'red'; // lighter red in dark mode (light salmon)
+    
     if (scoreChart) {
       scoreChart.destroy();
     }
@@ -353,8 +362,8 @@ function populateUserChart() {
         datasets: [{
           label: 'Score',
           data: data,
-          borderColor: 'blue',
-          backgroundColor: 'rgba(0, 0, 255, 0.1)',
+          borderColor: datasetBorderColor,
+          backgroundColor: datasetBackgroundColor,
           fill: true,
           tension: 0.2,
           pointRadius: 5,
@@ -363,13 +372,18 @@ function populateUserChart() {
       },
       options: {
         plugins: {
+          title: {
+            display: true,
+            text: 'Lifetime Score Progression',
+            font: { size: 18 },
+            color: darkMode ? '#000' : '#333'
+          },
           tooltip: {
             callbacks: {
-              // When hovering, show score and date.
               label: function(context) {
                 const score = context.parsed.y;
                 const date = context.label;
-                return `Score: ${score} (Date: ${date})`;
+                return [`Score: ${score}`, `Date: ${date}`];
               }
             }
           },
@@ -379,22 +393,24 @@ function populateUserChart() {
                 type: 'line',
                 yMin: highScore,
                 yMax: highScore,
-                borderColor: 'red',
+                borderColor: annotationBorderColor,
                 borderWidth: 2,
                 label: {
                   enabled: true,
                   content: 'All-Time High',
                   position: 'end',
-                  backgroundColor: 'rgba(255, 0, 0, 0.7)',
-                  font: {
-                    style: 'bold'
-                  }
+                  backgroundColor: darkMode ? 'rgba(255,160,122,0.7)' : 'rgba(255, 0, 0, 0.7)',
+                  font: { style: 'bold', color: darkMode ? '#000' : '#fff' }
                 }
               }
             }
           }
         },
         scales: {
+          x: {
+            ticks: { display: false },
+            grid: { display: false }
+          },
           y: {
             beginAtZero: true,
             min: 0,
@@ -407,30 +423,6 @@ function populateUserChart() {
   });
 }
 
-
-// Populate user history from Firebase (kept as a table for quick review)
-function populateUserHistory() {
-  const historyContainer = document.getElementById('user-history');
-  historyContainer.innerHTML = '';
-  
-  db.ref('users/' + currentUser.uid + '/scores')
-    .orderByKey()
-    .limitToLast(5)
-    .once('value', snapshot => {
-      const scores = snapshot.val();
-      if (!scores) {
-        historyContainer.innerHTML = '<p>No previous games</p>';
-        return;
-      }
-      const scoresArray = Object.values(scores).reverse();
-      let table = '<table class="leaderboard"><thead><tr><th>Game</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-      scoresArray.forEach((score, index) => {
-        table += `<tr><td>${index + 1}</td><td>${score.score}</td><td>${score.date}</td></tr>`;
-      });
-      table += '</tbody></table>';
-      historyContainer.innerHTML = table;
-    });
-}
 
 // New function to populate the global leaderboard for the game over screen
 function populateGlobalLeaderboard() {
@@ -614,6 +606,27 @@ function populateUserStats() {
     populateLifetimeChart();
   });
 }
+
+// In app.js
+document.addEventListener('DOMContentLoaded', () => {
+  const darkToggle = document.getElementById('darkModeToggle');
+  // Initial icon (moon for light mode)
+  darkToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+  
+  darkToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    // Update icon based on the mode:
+    if (document.body.classList.contains('dark')) {
+      // Sun icon for dark mode
+      darkToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+    } else {
+      // Moon icon for light mode
+      darkToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+    }
+  });
+});
+
+
 
 
 document.addEventListener('DOMContentLoaded', () => {

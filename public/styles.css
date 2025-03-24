@@ -1,152 +1,204 @@
+/* Default (Light Mode) Variables and Styles */
 :root {
-    --primary-color: #333;
-    --secondary-color: #555;
-    --background-color: #fff;
-    --problem-bg: #e0e0e0;
-    --text-color: #333;
-  }
-  
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-  }
-  
-  body {
-    background-color: var(--background-color);
-    color: var(--text-color);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  h1 {
-    color: var(--primary-color);
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  h2 {
-    color: var(--secondary-color);
-    margin-bottom: 15px;
-  }
-  
-  button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    margin: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-  }
-  
-  input {
-    padding: 12px;
-    margin: 10px 0;
-    width: 100%;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
-  }
-  
-  input[type="number"] {
-    -moz-appearance: textfield;
-  }
-  
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  
-  .game-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .problem-container {
-    background-color: var(--problem-bg);
-    padding: 20px;
-    text-align: center;
-    margin-top: 150px;
-  }
-  
-  .problem {
-    font-size: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .problem input {
-    width: 220px;
-    height: 40px;
-    font-size: 18px;
-    text-align: center;
-  }
-  
-  .hidden {
-    display: none;
-  }
-  
-  .leaderboard {
-    width: 100%;
-    margin-top: 20px;
-    border-collapse: collapse;
-  }
-  
-  .leaderboard th,
-  .leaderboard td {
-    padding: 10px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .leaderboard th {
-    background-color: var(--primary-color);
-    color: white;
-  }
-  
-  .user-stats {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f5f5f5;
-    border-radius: 5px;
-  }
+  --primary-color: #333;
+  --secondary-color: #555;
+  --background-color: #fff;
+  --problem-bg: #e0e0e0;
+  --text-color: #333;
+}
 
-/* Container for the Game Over screen's two columns */
+/* Dark mode overrides */
+body.dark {
+  --primary-color: #eee;           /* Light background for buttons in dark mode */
+  --secondary-color: #ccc;
+  --background-color: #222;
+  --problem-bg: #333;
+  --text-color: #eee;
+}
+
+
+/* Dark Mode Overrides for Game Over Page Text */
+/* Only target playtime info on the game over page in dark mode */
+body.dark #game-over-page .playtime-info {
+  color: #000;  /* Make the text black */
+  background-color: rgba(255, 255, 255, 0.9); /* Ensure proper contrast */
+  border-color: #ccc;
+}
+
+/* Only target table text within the global leaderboard on the game over page in dark mode */
+body.dark #game-over-page .global-leaderboard table,
+body.dark #game-over-page .global-leaderboard th,
+body.dark #game-over-page .global-leaderboard td,
+body.dark #game-over-page .chart-wrapper h2,
+body.dark #game-over-page .global-leaderboard h2 {
+  color: #000;  /* Set text color to black */
+  background-color: #fff; /* Light background for the table */
+}
+
+body.dark #leaderboard-page .leaderboard table,
+body.dark #leaderboard-page .leaderboard th,
+body.dark #leaderboard-page .leaderboard td {
+  color: #000;  /* Set text color to black */
+  background-color: #fff; /* Light background for the table */
+}
+
+body.dark #stats-page .user-stats h3,
+body.dark #stats-page .user-stats p {
+  color: #000;  /* Set text color to black */
+  background-color: #f5f5f5; /* Light background for the table */
+}
+
+
+/* Global styles remain unchanged */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+h2 {
+  color: var(--secondary-color);
+  margin-bottom: 15px;
+}
+
+button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  margin: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+/* In dark mode, override buttons: lighter background and black text */
+body.dark button {
+  background-color: #eee;
+  color: #000;
+}
+
+input {
+  padding: 12px;
+  margin: 10px 0;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.problem-container {
+  background-color: var(--problem-bg);
+  padding: 20px;
+  text-align: center;
+  margin-top: 150px;
+}
+
+.problem {
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.problem input {
+  width: 220px;
+  height: 40px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.leaderboard {
+  width: 100%;
+  margin-top: 20px;
+  background-color: #f5f5f5;
+  border-collapse: collapse;
+}
+
+.leaderboard th,
+.leaderboard td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.leaderboard th {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.user-stats {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+}
+
+/* Game Over Screen Layout */
 .game-over-content {
   display: flex;
-  gap: 20px;
+  column-gap: 20px;
   margin-bottom: 20px;
+  background-color: #f5f5f5;
+
 }
 
-/* Left column for the chart */
 .chart-wrapper {
   flex: 1;
+
 }
 
-/* Right column for the global leaderboard */
 .global-leaderboard {
   flex: 1;
-  overflow-y: auto; /* Optional: if leaderboard entries exceed available space */
+  overflow-y: auto;
+
 }
 
-/* Chart container with fixed height */
 .chart-container {
   width: 100%;
   height: 300px;
@@ -159,12 +211,10 @@
   display: block;
 }
 
-/* Ensure the game over container is relative for absolute positioning */
 #game-over-page {
   position: relative;
 }
 
-/* Style the playtime info to be in the top left corner of the game over page */
 .playtime-info {
   position: absolute;
   top: 0;
@@ -177,13 +227,45 @@
   border-radius: 5px;
 }
 
-/* Style for the lifetime chart on the Stats page */
+/* Stats Chart */
 #lifetimeChart {
   width: 100% !important;
   height: 300px !important;
   display: block;
 }
 
+/* Dark Mode Toggle Button - Complete overhaul */
+.dark-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: transparent !important; /* Force transparency */
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 1000;
+  color: #000;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+}
 
+body.dark .dark-toggle {
+  color: #fff;
+}
 
-  
+/* Override any other button styles that might be affecting this button */
+.dark-toggle:hover,
+.dark-toggle:focus,
+.dark-toggle:active {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
