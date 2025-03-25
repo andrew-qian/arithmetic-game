@@ -283,3 +283,20 @@ body.dark .dark-toggle {
   box-shadow: none !important;
 }
 
+#dailyUsageChart {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.daily-usage-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  cursor: default;
+  
+}
+
+

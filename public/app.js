@@ -60,11 +60,14 @@ function initializeEventListeners() {
     showPage('leaderboard-page');
   });
   document.getElementById('view-stats-button').addEventListener('click', () => {
-    populateUserStats();  // This function updates the summary and calls populateLifetimeChart() later.
+    populateUserStats();  // Your existing summary and lifetime chart function
     showPage('stats-page');
-    // Optionally, add a short delay to ensure the canvas is rendered:
-    setTimeout(populateLifetimeChart, 100);
+    setTimeout(() => {
+      populateLifetimeChart();
+      populateDailyUsageChart(); // Call our new function here
+    }, 100);
   });
+  
   
   document.getElementById('sign-out-button').addEventListener('click', handleSignOut);
   
@@ -626,6 +629,133 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function populateDailyUsageChart() {
+  // Get the parent container for stats (where the chart will go)
+  const detailedStats = document.getElementById('detailed-stats');
+  if (!detailedStats) {
+    console.error("Parent element 'detailed-stats' not found.");
+    return;
+  }
+  
+  // Remove any existing daily usage container if present
+  let container = document.getElementById('dailyUsageChart');
+  if (container) {
+    container.remove();
+  }
+  
+  // Create a container for the daily usage chart
+  container = document.createElement('div');
+  container.id = 'dailyUsageChart';
+  container.style.display = 'grid';
+  container.style.gridAutoFlow = 'column';
+  container.style.gridTemplateRows = 'repeat(7, 20px)';
+  container.style.gap = '4px';
+  container.style.margin = '0 auto';  // Center the grid horizontally
+  // Append container to detailedStats
+  detailedStats.appendChild(container);
+
+  const title = document.createElement('h3');
+  title.textContent = 'Daily Usage Over Last 6 Months';
+  title.style.textAlign = 'center';
+  detailedStats.insertBefore(title, container);
+  
+  // Create a container for month labels above the grid
+  let labelContainer = document.getElementById('dailyUsageLabels');
+  if (labelContainer) {
+    labelContainer.remove();
+  }
+  labelContainer = document.createElement('div');
+  labelContainer.id = 'dailyUsageLabels';
+  labelContainer.style.display = 'grid';
+  // We'll set the number of columns later after we compute the weeks.
+  labelContainer.style.textAlign = 'center';
+  labelContainer.style.fontSize = '12px';
+  labelContainer.style.color = '#666';
+  labelContainer.style.marginBottom = '4px';
+  detailedStats.insertBefore(labelContainer, container);
+  
+  // Define the time period: last 6 months.
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setMonth(startDate.getMonth() - 6);
+  // Adjust startDate to the previous Sunday (for week alignment)
+  startDate.setDate(startDate.getDate() - startDate.getDay());
+  
+  // Build an array of dates from startDate to today (inclusive)
+  const dates = [];
+  let currentDate = new Date(startDate);
+  while (currentDate <= today) {
+    dates.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  // Group the dates into weeks (each week is 7 days)
+  const weeks = [];
+  for (let i = 0; i < dates.length; i += 7) {
+    weeks.push(dates.slice(i, i + 7));
+  }
+  
+  // Set up the label container with one column per week.
+  labelContainer.style.gridTemplateColumns = `repeat(${weeks.length}, 1fr)`;
+  
+  // For uniform spacing, decide on a step (e.g., every 4 weeks)
+  const labelStep = 4;
+  weeks.forEach((week, index) => {
+    const labelDiv = document.createElement('div');
+    labelDiv.style.width = '100%';
+    // If index is 0 or a multiple of labelStep, display the month abbreviation
+    if (index === 0 || index % labelStep === 0) {
+      labelDiv.textContent = week[0].toLocaleString('default', { month: 'short' });
+    } else {
+      labelDiv.textContent = '';
+    }
+    labelContainer.appendChild(labelDiv);
+  });
+  
+  // Retrieve scores from Firebase (group by date)
+  db.ref('users/' + currentUser.uid + '/scores').once('value')
+    .then(snapshot => {
+      const scoresObj = snapshot.val() || {};
+      const usageData = {};
+      // For each score entry, increment the count for that day.
+      Object.values(scoresObj).forEach(entry => {
+        // Use toLocaleDateString to match our dates array.
+        const dateKey = new Date(entry.date).toLocaleDateString();
+        usageData[dateKey] = (usageData[dateKey] || 0) + 1;
+      });
+      
+      // Determine the maximum usage (for color scaling)
+      const allCounts = Object.values(usageData);
+      const maxUsage = allCounts.length ? Math.max(...allCounts) : 1;
+      
+      // For each week (each column), add 7 cells (one per day).
+      weeks.forEach(week => {
+        week.forEach(date => {
+          const cell = document.createElement('div');
+          cell.className = 'daily-usage-box';
+          // Get the date key for this cell.
+          const dateKey = date.toLocaleDateString();
+          const count = usageData[dateKey] || 0;
+          if (count > 0) {
+            // Compute intensity (0 to 1)
+            const intensity = count / maxUsage;
+            // Map intensity to a shade of green: HSL with hue 120, saturation 70%,
+            // and lightness from 90% (for 0 tests) to 50% (for max tests)
+            const lightness = 90 - intensity * 40;
+            cell.style.backgroundColor = `hsl(120, 70%, ${lightness}%)`;
+          } else {
+            cell.style.backgroundColor = '#eee';
+          }
+          cell.title = count > 0 ? `${count} tests on ${dateKey}` : `No tests on ${dateKey}`;
+          container.appendChild(cell);
+        });
+      });
+    })
+    .catch(error => {
+      console.error("Error fetching scores data: ", error);
+    });
+}
 
 
 
