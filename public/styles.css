@@ -145,7 +145,7 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .problem {
-  font-size: 24px;
+  font-size: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -153,10 +153,10 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .problem input {
-  width: 220px;
-  height: 40px;
-  font-size: 18px;
-  text-align: center;
+  width: 240px;
+  height: 60px;
+  font-size: 36px;
+  text-align: left;
 }
 
 .hidden {
@@ -282,3 +282,4 @@ body.dark .dark-toggle {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+

@@ -347,6 +347,7 @@ function populateUserChart() {
     const darkMode = document.body.classList.contains('dark');
     
     // Set colors based on mode:
+    // this code actually doesn't work not that big of a deal though
     const datasetBorderColor = darkMode ? 'rgba(173,216,230,1)' : 'blue'; // lighter blue in dark mode (lightblue)
     const datasetBackgroundColor = darkMode ? 'rgba(173,216,230,0.3)' : 'rgba(0, 0, 255, 0.1)';
     const annotationBorderColor = darkMode ? 'rgba(255,160,122,1)' : 'red'; // lighter red in dark mode (light salmon)
