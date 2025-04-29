@@ -631,51 +631,66 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function populateDailyUsageChart() {
-  // Get the parent container for stats (where the chart will go)
+  // Get the parent container for stats
   const detailedStats = document.getElementById('detailed-stats');
   if (!detailedStats) {
     console.error("Parent element 'detailed-stats' not found.");
     return;
   }
   
-  // Remove any existing daily usage container if present
-  let container = document.getElementById('dailyUsageChart');
-  if (container) {
-    container.remove();
-  }
+  // Remove any existing usage chart elements
+  const existingTitle = document.getElementById('dailyUsageTitle');
+  if (existingTitle) existingTitle.remove();
   
-  // Create a container for the daily usage chart
-  container = document.createElement('div');
+  const existingWrapper = document.getElementById('dailyUsageWrapper');
+  if (existingWrapper) existingWrapper.remove();
+  
+  const existingLabels = document.getElementById('dailyUsageLabels');
+  if (existingLabels) existingLabels.remove();
+  
+  const existingChart = document.getElementById('dailyUsageChart');
+  if (existingChart) existingChart.remove();
+  
+  // Create title
+  const title = document.createElement('h3');
+  title.id = 'dailyUsageTitle';
+  title.textContent = 'Daily Usage Over Last 6 Months';
+  title.style.textAlign = 'center';
+  title.style.marginTop = '30px';
+  detailedStats.appendChild(title);
+  
+  // Create a wrapper div that will center its contents
+  const wrapperDiv = document.createElement('div');
+  wrapperDiv.id = 'dailyUsageWrapper';
+  wrapperDiv.style.display = 'flex';
+  wrapperDiv.style.flexDirection = 'column';
+  wrapperDiv.style.alignItems = 'center';
+  wrapperDiv.style.width = '100%';
+  wrapperDiv.style.margin = '10px 0 30px 0';
+  detailedStats.appendChild(wrapperDiv);
+  
+  // Create label container first (to be displayed above the chart)
+  const labelContainer = document.createElement('div');
+  labelContainer.id = 'dailyUsageLabels';
+  labelContainer.style.display = 'grid';
+  labelContainer.style.textAlign = 'center';
+  labelContainer.style.fontSize = '14px';
+  labelContainer.style.color = '#666';
+  labelContainer.style.marginBottom = '4px';
+  labelContainer.style.maxWidth = 'fit-content'; // Ensure it doesn't exceed needed width
+  wrapperDiv.appendChild(labelContainer);
+  
+  // Create the chart container
+  const container = document.createElement('div');
   container.id = 'dailyUsageChart';
   container.style.display = 'grid';
   container.style.gridAutoFlow = 'column';
   container.style.gridTemplateRows = 'repeat(7, 20px)';
-  container.style.gap = '4px';
-  container.style.margin = '0 auto';  // Center the grid horizontally
-  // Append container to detailedStats
-  detailedStats.appendChild(container);
-
-  const title = document.createElement('h3');
-  title.textContent = 'Daily Usage Over Last 6 Months';
-  title.style.textAlign = 'center';
-  detailedStats.insertBefore(title, container);
+  container.style.gap = '5px';
+  container.style.maxWidth = 'fit-content'; // Ensure it doesn't exceed needed width
+  wrapperDiv.appendChild(container);
   
-  // Create a container for month labels above the grid
-  let labelContainer = document.getElementById('dailyUsageLabels');
-  if (labelContainer) {
-    labelContainer.remove();
-  }
-  labelContainer = document.createElement('div');
-  labelContainer.id = 'dailyUsageLabels';
-  labelContainer.style.display = 'grid';
-  // We'll set the number of columns later after we compute the weeks.
-  labelContainer.style.textAlign = 'center';
-  labelContainer.style.fontSize = '12px';
-  labelContainer.style.color = '#666';
-  labelContainer.style.marginBottom = '4px';
-  detailedStats.insertBefore(labelContainer, container);
-  
-  // Define the time period: last 6 months.
+  // Define the time period: last 6 months
   const today = new Date();
   const startDate = new Date(today);
   startDate.setMonth(startDate.getMonth() - 6);
@@ -696,7 +711,7 @@ function populateDailyUsageChart() {
     weeks.push(dates.slice(i, i + 7));
   }
   
-  // Set up the label container with one column per week.
+  // Set up the label container with one column per week
   labelContainer.style.gridTemplateColumns = `repeat(${weeks.length}, 1fr)`;
   
   // For uniform spacing, decide on a step (e.g., every 4 weeks)
@@ -718,9 +733,10 @@ function populateDailyUsageChart() {
     .then(snapshot => {
       const scoresObj = snapshot.val() || {};
       const usageData = {};
-      // For each score entry, increment the count for that day.
+      
+      // For each score entry, increment the count for that day
       Object.values(scoresObj).forEach(entry => {
-        // Use toLocaleDateString to match our dates array.
+        // Use toLocaleDateString to match our dates array
         const dateKey = new Date(entry.date).toLocaleDateString();
         usageData[dateKey] = (usageData[dateKey] || 0) + 1;
       });
@@ -729,14 +745,15 @@ function populateDailyUsageChart() {
       const allCounts = Object.values(usageData);
       const maxUsage = allCounts.length ? Math.max(...allCounts) : 1;
       
-      // For each week (each column), add 7 cells (one per day).
+      // For each week (each column), add 7 cells (one per day)
       weeks.forEach(week => {
         week.forEach(date => {
           const cell = document.createElement('div');
           cell.className = 'daily-usage-box';
-          // Get the date key for this cell.
+          // Get the date key for this cell
           const dateKey = date.toLocaleDateString();
           const count = usageData[dateKey] || 0;
+          
           if (count > 0) {
             // Compute intensity (0 to 1)
             const intensity = count / maxUsage;
@@ -747,6 +764,7 @@ function populateDailyUsageChart() {
           } else {
             cell.style.backgroundColor = '#eee';
           }
+          
           cell.title = count > 0 ? `${count} tests on ${dateKey}` : `No tests on ${dateKey}`;
           container.appendChild(cell);
         });
@@ -754,7 +772,7 @@ function populateDailyUsageChart() {
     })
     .catch(error => {
       console.error("Error fetching scores data: ", error);
-    });
+  });
 }
 
 
