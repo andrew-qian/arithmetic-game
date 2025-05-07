@@ -43,6 +43,20 @@ function showPage(pageId) {
   }
 }
 
+// Add this helper function to ensure consistent date formatting
+function formatDateMMDDYYYY(date) {
+  if (!(date instanceof Date)) {
+    date = new Date(date);
+  }
+  
+  const month = date.getMonth() + 1; // getMonth() is zero-indexed
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  // Format as MM/DD/YYYY with leading zeros where needed
+  return `${month < 10 ? '0' + month : month}/${day < 10 ? '0' + day : day}/${year}`;
+}
+
 // Initialize event listeners
 function initializeEventListeners() {
   // Sign In Page
@@ -281,13 +295,14 @@ function formatTime(seconds) {
 function endGame() {
   clearInterval(timer);
   
-  const date = new Date().toLocaleDateString();
+  const currentDate = new Date();
+  const formattedDate = formatDateMMDDYYYY(currentDate);
   const currentGameDuration = 120 - timeLeft; // current game duration in seconds
   sessionPlaytimeTotal += currentGameDuration;
   
   // Save game score
   const scoreRef = db.ref('users/' + currentUser.uid + '/scores').push();
-  scoreRef.set({ score: currentScore, date: date });
+  scoreRef.set({ score: currentScore, date: formattedDate });
   
   // Add to global leaderboard
   const leaderboardRef = db.ref('leaderboard').push();
@@ -295,7 +310,7 @@ function endGame() {
     uid: currentUser.uid, 
     username: document.getElementById('user-welcome').textContent, 
     score: currentScore, 
-    date: date 
+    date: formattedDate 
   });
   
   // Update user's total playtime in Firebase
@@ -336,9 +351,20 @@ function populateUserChart() {
     scoresArray = scoresArray.slice(-10);
     
     // Extract labels (dates) and data (scores)
-    const labels = scoresArray.map(score => score.date);
+    // Normalize any inconsistent date formats
+    const labels = scoresArray.map(score => {
+      if (score.date && score.date.includes('-')) {
+        // Convert YYYY-MM-DD to MM/DD/YYYY
+        const parts = score.date.split('-');
+        if (parts.length === 3) {
+          return `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+      }
+      return score.date;
+    });
     const data = scoresArray.map(score => score.score);
     
+    // Rest of function remains the same...
     // Compute the all-time high score from all available scores
     const allScores = Object.values(scoresObj).map(score => score.score);
     const highScore = allScores.length ? Math.max(...allScores) : 0;
@@ -350,10 +376,9 @@ function populateUserChart() {
     const darkMode = document.body.classList.contains('dark');
     
     // Set colors based on mode:
-    // this code actually doesn't work not that big of a deal though
-    const datasetBorderColor = darkMode ? 'rgba(173,216,230,1)' : 'blue'; // lighter blue in dark mode (lightblue)
+    const datasetBorderColor = darkMode ? 'rgba(173,216,230,1)' : 'blue';
     const datasetBackgroundColor = darkMode ? 'rgba(173,216,230,0.3)' : 'rgba(0, 0, 255, 0.1)';
-    const annotationBorderColor = darkMode ? 'rgba(255,160,122,1)' : 'red'; // lighter red in dark mode (light salmon)
+    const annotationBorderColor = darkMode ? 'rgba(255,160,122,1)' : 'red';
     
     if (scoreChart) {
       scoreChart.destroy();
@@ -434,13 +459,22 @@ function populateGlobalLeaderboard() {
   container.innerHTML = '';
   
   db.ref('leaderboard')
-    .orderByChild('score')
     .once('value', snapshot => {
-      let entries = [];
+      let userScores = {};
+      
+      // Process all entries to keep only the highest score per user
       snapshot.forEach(childSnapshot => {
-        entries.push(childSnapshot.val());
+        const entry = childSnapshot.val();
+        const userId = entry.uid;
+        
+        // If this user isn't in our map yet, or if this score is higher than their previous best
+        if (!userScores[userId] || entry.score > userScores[userId].score) {
+          userScores[userId] = entry;
+        }
       });
-      // Sort in descending order
+      
+      // Convert to array and sort by score (descending)
+      let entries = Object.values(userScores);
       entries.sort((a, b) => b.score - a.score);
       
       // Build an HTML table for the top 5 entries
@@ -458,22 +492,31 @@ function populateGlobalLeaderboard() {
     });
 }
 
-
 // Populate full leaderboard
 function populateLeaderboard() {
   const leaderboardBody = document.getElementById('full-leaderboard-body');
   leaderboardBody.innerHTML = '';
   
   db.ref('leaderboard')
-    .orderByChild('score')
     .once('value', snapshot => {
-      let entries = [];
+      let userScores = {};
+      
+      // Process all entries to keep only the highest score per user
       snapshot.forEach(childSnapshot => {
-        entries.push(childSnapshot.val());
+        const entry = childSnapshot.val();
+        const userId = entry.uid;
+        
+        // If this user isn't in our map yet, or if this score is higher than their previous best
+        if (!userScores[userId] || entry.score > userScores[userId].score) {
+          userScores[userId] = entry;
+        }
       });
-      // Sort in descending order
+      
+      // Convert to array and sort by score (descending)
+      let entries = Object.values(userScores);
       entries.sort((a, b) => b.score - a.score);
-      // Limit to the top 10 entries
+      
+      // Display the top 10 unique users
       entries.slice(0, 10).forEach((entry, index) => {
         leaderboardBody.innerHTML += `
           <tr>
@@ -506,8 +549,20 @@ function populateLifetimeChart() {
     // For the x-axis, use blank labels while storing dates for tooltips.
     const xLabels = scoresArray.map(() => ""); 
     const data = scoresArray.map(score => score.score);
-    const tooltipDates = scoresArray.map(score => score.date);
     
+    // Normalize date formats for tooltips
+    const tooltipDates = scoresArray.map(score => {
+      if (score.date && score.date.includes('-')) {
+        // Convert YYYY-MM-DD to MM/DD/YYYY
+        const parts = score.date.split('-');
+        if (parts.length === 3) {
+          return `${parts[1]}/${parts[2]}/${parts[0]}`;
+        }
+      }
+      return score.date;
+    });
+    
+    // Rest of function remains the same...
     // Compute fixed y-axis maximum
     const highScore = scoresArray.length ? Math.max(...scoresArray.map(s => s.score)) : 0;
     const fixedMax = Math.max(10, Math.ceil(highScore / 10) * 10);
@@ -736,11 +791,26 @@ function populateDailyUsageChart() {
       
       // For each score entry, increment the count for that day
       Object.values(scoresObj).forEach(entry => {
-        // Use toLocaleDateString to match our dates array
-        const dateKey = new Date(entry.date).toLocaleDateString();
+        let dateKey;
+        
+        if (entry.date && entry.date.includes('-')) {
+          // Convert YYYY-MM-DD to a Date object
+          const parts = entry.date.split('-');
+          if (parts.length === 3) {
+            const date = new Date(parts[0], parts[1]-1, parts[2]);
+            dateKey = date.toLocaleDateString();
+          } else {
+            dateKey = new Date(entry.date).toLocaleDateString();
+          }
+        } else {
+          // Use toLocaleDateString to match our dates array
+          dateKey = new Date(entry.date).toLocaleDateString();
+        }
+        
         usageData[dateKey] = (usageData[dateKey] || 0) + 1;
       });
       
+      // Rest of function remains the same...
       // Determine the maximum usage (for color scaling)
       const allCounts = Object.values(usageData);
       const maxUsage = allCounts.length ? Math.max(...allCounts) : 1;
