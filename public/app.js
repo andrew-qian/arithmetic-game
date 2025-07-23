@@ -30,7 +30,8 @@ const pages = {
   game: document.getElementById('game-page'),
   gameOver: document.getElementById('game-over-page'),
   leaderboard: document.getElementById('leaderboard-page'),
-  stats: document.getElementById('stats-page')
+  stats: document.getElementById('stats-page'),
+  testimonials: document.getElementById('testimonials-page'),
 };
 
 // Helper function to show one page and hide the others
@@ -78,8 +79,11 @@ function initializeEventListeners() {
     showPage('stats-page');
     setTimeout(() => {
       populateLifetimeChart();
-      populateDailyUsageChart(); // Call our new function here
     }, 100);
+  });
+  document.getElementById('view-testimonials-button').addEventListener('click', () => {
+    showPage('testimonials-page');
+    loadTestimonials();
   });
   
   
@@ -120,6 +124,9 @@ function initializeEventListeners() {
   
   // Stats Page
   document.getElementById('stats-back-button').addEventListener('click', () => showPage('menu-page'));
+  document.getElementById('testimonials-back-button').addEventListener('click', () => showPage('menu-page'));
+  document.getElementById('carousel-prev').addEventListener('click', () => moveTestimonial(-1));
+  document.getElementById('carousel-next').addEventListener('click', () => moveTestimonial(1));
 }
 
 // Authentication functions using Firebase Auth
@@ -685,167 +692,46 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function populateDailyUsageChart() {
-  // Get the parent container for stats
-  const detailedStats = document.getElementById('detailed-stats');
-  if (!detailedStats) {
-    console.error("Parent element 'detailed-stats' not found.");
-    return;
-  }
-  
-  // Remove any existing usage chart elements
-  const existingTitle = document.getElementById('dailyUsageTitle');
-  if (existingTitle) existingTitle.remove();
-  
-  const existingWrapper = document.getElementById('dailyUsageWrapper');
-  if (existingWrapper) existingWrapper.remove();
-  
-  const existingLabels = document.getElementById('dailyUsageLabels');
-  if (existingLabels) existingLabels.remove();
-  
-  const existingChart = document.getElementById('dailyUsageChart');
-  if (existingChart) existingChart.remove();
-  
-  // Create title
-  const title = document.createElement('h3');
-  title.id = 'dailyUsageTitle';
-  title.textContent = 'Daily Usage Over Last 6 Months';
-  title.style.textAlign = 'center';
-  title.style.marginTop = '30px';
-  detailedStats.appendChild(title);
-  
-  // Create a wrapper div that will center its contents
-  const wrapperDiv = document.createElement('div');
-  wrapperDiv.id = 'dailyUsageWrapper';
-  wrapperDiv.style.display = 'flex';
-  wrapperDiv.style.flexDirection = 'column';
-  wrapperDiv.style.alignItems = 'center';
-  wrapperDiv.style.width = '100%';
-  wrapperDiv.style.margin = '10px 0 30px 0';
-  detailedStats.appendChild(wrapperDiv);
-  
-  // Create label container first (to be displayed above the chart)
-  const labelContainer = document.createElement('div');
-  labelContainer.id = 'dailyUsageLabels';
-  labelContainer.style.display = 'grid';
-  labelContainer.style.textAlign = 'center';
-  labelContainer.style.fontSize = '14px';
-  labelContainer.style.color = '#666';
-  labelContainer.style.marginBottom = '4px';
-  labelContainer.style.maxWidth = 'fit-content'; // Ensure it doesn't exceed needed width
-  wrapperDiv.appendChild(labelContainer);
-  
-  // Create the chart container
-  const container = document.createElement('div');
-  container.id = 'dailyUsageChart';
-  container.style.display = 'grid';
-  container.style.gridAutoFlow = 'column';
-  container.style.gridTemplateRows = 'repeat(7, 20px)';
-  container.style.gap = '5px';
-  container.style.maxWidth = 'fit-content'; // Ensure it doesn't exceed needed width
-  wrapperDiv.appendChild(container);
-  
-  // Define the time period: last 6 months
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setMonth(startDate.getMonth() - 6);
-  // Adjust startDate to the previous Sunday (for week alignment)
-  startDate.setDate(startDate.getDate() - startDate.getDay());
-  
-  // Build an array of dates from startDate to today (inclusive)
-  const dates = [];
-  let currentDate = new Date(startDate);
-  while (currentDate <= today) {
-    dates.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  
-  // Group the dates into weeks (each week is 7 days)
-  const weeks = [];
-  for (let i = 0; i < dates.length; i += 7) {
-    weeks.push(dates.slice(i, i + 7));
-  }
-  
-  // Set up the label container with one column per week
-  labelContainer.style.gridTemplateColumns = `repeat(${weeks.length}, 1fr)`;
-  
-  // For uniform spacing, decide on a step (e.g., every 4 weeks)
-  const labelStep = 4;
-  weeks.forEach((week, index) => {
-    const labelDiv = document.createElement('div');
-    labelDiv.style.width = '100%';
-    // If index is 0 or a multiple of labelStep, display the month abbreviation
-    if (index === 0 || index % labelStep === 0) {
-      labelDiv.textContent = week[0].toLocaleString('default', { month: 'short' });
-    } else {
-      labelDiv.textContent = '';
-    }
-    labelContainer.appendChild(labelDiv);
-  });
-  
-  // Retrieve scores from Firebase (group by date)
-  db.ref('users/' + currentUser.uid + '/scores').once('value')
-    .then(snapshot => {
-      const scoresObj = snapshot.val() || {};
-      const usageData = {};
-      
-      // For each score entry, increment the count for that day
-      Object.values(scoresObj).forEach(entry => {
-        let dateKey;
-        
-        if (entry.date && entry.date.includes('-')) {
-          // Convert YYYY-MM-DD to a Date object
-          const parts = entry.date.split('-');
-          if (parts.length === 3) {
-            const date = new Date(parts[0], parts[1]-1, parts[2]);
-            dateKey = date.toLocaleDateString();
-          } else {
-            dateKey = new Date(entry.date).toLocaleDateString();
-          }
-        } else {
-          // Use toLocaleDateString to match our dates array
-          dateKey = new Date(entry.date).toLocaleDateString();
-        }
-        
-        usageData[dateKey] = (usageData[dateKey] || 0) + 1;
-      });
-      
-      // Rest of function remains the same...
-      // Determine the maximum usage (for color scaling)
-      const allCounts = Object.values(usageData);
-      const maxUsage = allCounts.length ? Math.max(...allCounts) : 1;
-      
-      // For each week (each column), add 7 cells (one per day)
-      weeks.forEach(week => {
-        week.forEach(date => {
-          const cell = document.createElement('div');
-          cell.className = 'daily-usage-box';
-          // Get the date key for this cell
-          const dateKey = date.toLocaleDateString();
-          const count = usageData[dateKey] || 0;
-          
-          if (count > 0) {
-            // Compute intensity (0 to 1)
-            const intensity = count / maxUsage;
-            // Map intensity to a shade of green: HSL with hue 120, saturation 70%,
-            // and lightness from 90% (for 0 tests) to 50% (for max tests)
-            const lightness = 90 - intensity * 40;
-            cell.style.backgroundColor = `hsl(120, 70%, ${lightness}%)`;
-          } else {
-            cell.style.backgroundColor = '#eee';
-          }
-          
-          cell.title = count > 0 ? `${count} tests on ${dateKey}` : `No tests on ${dateKey}`;
-          container.appendChild(cell);
-        });
-      });
+let testimonials = [];
+let currentTestimonialIndex = 0;
+
+function loadTestimonials() {
+  fetch('testimonials.json')
+    .then(response => response.json())
+    .then(data => {
+      testimonials = data;
+      currentTestimonialIndex = 0;
+      renderTestimonial();
     })
-    .catch(error => {
-      console.error("Error fetching scores data: ", error);
-  });
+    .catch(() => {
+      testimonials = [];
+      renderTestimonial();
+    });
 }
 
+function renderTestimonial() {
+  const container = document.getElementById('testimonials-carousel');
+  container.innerHTML = '';
+  if (!testimonials.length) {
+    container.innerHTML = '<p style="text-align:center;">No testimonials yet.</p>';
+    return;
+  }
+  const t = testimonials[currentTestimonialIndex];
+  const photo = t.photo ? t.photo : 'silhouette.png';
+  container.innerHTML = `
+    <div class="testimonial-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:400px;margin:0 auto;">
+      <img src="${photo}" alt="${t.name}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:16px;border:0px solid #ccc;" onerror="this.src='silhouette.png'">
+      <blockquote style="font-size:1.2em;font-style:italic;margin-bottom:12px;text-align:center;">"${t.quote}"</blockquote>
+      <div style="font-weight:bold;">- ${t.name}</div>
+    </div>
+  `;
+}
 
+function moveTestimonial(direction) {
+  if (!testimonials.length) return;
+  currentTestimonialIndex = (currentTestimonialIndex + direction + testimonials.length) % testimonials.length;
+  renderTestimonial();
+}
 
 
 document.addEventListener('DOMContentLoaded', () => {
