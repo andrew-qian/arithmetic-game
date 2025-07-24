@@ -737,8 +737,6 @@ function populateUserStats() {
       <p>Total Problems Attempted: ${totalProblems}</p>
       <p>Total Playtime: ${formatTime(totalPlaytime)}</p>
       <p>Score Variability (Std Dev): ${stdDev}</p>
-      <p>Min Score: ${minScore}</p>
-      <p>Max Score: ${maxScore}</p>
       <p>Recent 5-Game Avg: ${recentMA}</p>
       <div class="chart-section" style="padding-top: 20px;">
         <canvas id="lifetimeChart"></canvas>
