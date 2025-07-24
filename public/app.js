@@ -298,6 +298,41 @@ function formatTime(seconds) {
   return `${hrs}h ${mins}m`
 }
 
+// === New Helper Functions for Statistics ===
+function linearRegression(y) {
+  const n = y.length;
+  if (n === 0) return [];
+  const x = Array.from({length: n}, (_, i) => i + 1);
+  const xMean = x.reduce((a, b) => a + b, 0) / n;
+  const yMean = y.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (x[i] - xMean) * (y[i] - yMean);
+    den += (x[i] - xMean) ** 2;
+  }
+  const slope = den === 0 ? 0 : num / den;
+  const intercept = yMean - slope * xMean;
+  return x.map(xi => slope * xi + intercept);
+}
+
+function movingAverage(arr, windowSize) {
+  let result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const start = Math.max(0, i - windowSize + 1);
+    const window = arr.slice(start, i + 1);
+    const avg = window.reduce((a, b) => a + b, 0) / window.length;
+    result.push(avg);
+  }
+  return result;
+}
+
+function standardDeviation(arr) {
+  if (!arr.length) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / arr.length;
+  return Math.sqrt(variance);
+}
+
 
 function endGame() {
   clearInterval(timer);
@@ -573,7 +608,11 @@ function populateLifetimeChart() {
     // Compute fixed y-axis maximum
     const highScore = scoresArray.length ? Math.max(...scoresArray.map(s => s.score)) : 0;
     const fixedMax = Math.max(10, Math.ceil(highScore / 10) * 10);
-    
+
+    // === New: Calculate trendline and moving average ===
+    const trendline = linearRegression(data);
+    const ma = movingAverage(data, 5); // 5-game moving average
+
     if (lifetimeChart) {
       lifetimeChart.destroy();
     }
@@ -582,16 +621,45 @@ function populateLifetimeChart() {
       type: 'line',
       data: {
         labels: xLabels,
-        datasets: [{
-          label: 'Score',
-          data: data,
-          borderColor: 'green',
-          backgroundColor: 'rgba(0, 255, 0, 0.1)',
-          fill: true,
-          tension: 0.2,
-          pointRadius: 5,
-          pointHoverRadius: 7
-        }]
+        datasets: [
+          {
+            label: 'Score',
+            data: data,
+            borderColor: 'green',
+            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+            fill: false, // No area fill
+            tension: 0.2,
+            pointRadius: 2,
+            pointHoverRadius: 3.5,
+            showLine: false, // Only show points, no connecting line
+            pointBackgroundColor: 'green', // Opaque green fill
+            pointBorderColor: 'green' // Opaque green border
+          },
+          {
+            label: 'Trendline',
+            data: trendline,
+            borderColor: 'red',
+            borderDash: [], // Solid line
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            pointHitRadius: 0,
+            pointHoverBackgroundColor: 'rgba(0,0,0,0)',
+            pointHoverBorderColor: 'rgba(0,0,0,0)'
+          },
+          {
+            label: '5-Game Moving Avg',
+            data: ma,
+            borderColor: 'blue',
+            borderDash: [], // Solid line
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            pointHitRadius: 0,
+            pointHoverBackgroundColor: 'rgba(0,0,0,0)',
+            pointHoverBorderColor: 'rgba(0,0,0,0)'
+          }
+        ]
       },
       options: {
         plugins: {
@@ -652,6 +720,13 @@ function populateUserStats() {
     const correctAnswers = userData.stats ? userData.stats.correctAnswers : 0;
     const accuracy = totalProblems ? ((correctAnswers / totalProblems) * 100).toFixed(1) : 0;
     const totalPlaytime = userData.totalPlaytime || 0;
+
+    // === New: Variability statistics ===
+    const scoreList = scoresArray.map(s => s.score);
+    const stdDev = scoreList.length ? standardDeviation(scoreList).toFixed(2) : 0;
+    const minScore = scoreList.length ? Math.min(...scoreList) : 0;
+    const maxScore = scoreList.length ? Math.max(...scoreList) : 0;
+    const recentMA = scoreList.length ? movingAverage(scoreList, 5).slice(-1)[0].toFixed(1) : 0;
     
     // Build the summary HTML, then add a container for the chart.
     let html = `
@@ -661,6 +736,10 @@ function populateUserStats() {
       <p>Average Score: ${averageScore}</p>
       <p>Total Problems Attempted: ${totalProblems}</p>
       <p>Total Playtime: ${formatTime(totalPlaytime)}</p>
+      <p>Score Variability (Std Dev): ${stdDev}</p>
+      <p>Min Score: ${minScore}</p>
+      <p>Max Score: ${maxScore}</p>
+      <p>Recent 5-Game Avg: ${recentMA}</p>
       <div class="chart-section" style="padding-top: 20px;">
         <canvas id="lifetimeChart"></canvas>
       </div>
