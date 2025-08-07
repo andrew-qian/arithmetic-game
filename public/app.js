@@ -26,6 +26,8 @@ let scoreChart = null; // Reference to Chart.js chart
 const pages = {
   signIn: document.getElementById('sign-in-page'),
   createAccount: document.getElementById('create-account-page'),
+  verification: document.getElementById('verification-page'),
+  verificationReminder: document.getElementById('verification-reminder-page'),
   menu: document.getElementById('menu-page'),
   game: document.getElementById('game-page'),
   gameOver: document.getElementById('game-over-page'),
@@ -67,6 +69,16 @@ function initializeEventListeners() {
   // Create Account Page
   document.getElementById('submit-account-button').addEventListener('click', handleCreateAccount);
   document.getElementById('back-to-signin-button').addEventListener('click', () => showPage('sign-in-page'));
+  
+  // Email Verification Page
+  document.getElementById('resend-verification-button').addEventListener('click', resendVerificationEmail);
+  document.getElementById('check-verification-button').addEventListener('click', checkEmailVerification);
+  document.getElementById('verification-back-button').addEventListener('click', () => showPage('sign-in-page'));
+  
+  // Email Verification Reminder Page
+  document.getElementById('reminder-resend-button').addEventListener('click', resendVerificationEmail);
+  document.getElementById('reminder-check-button').addEventListener('click', checkEmailVerification);
+  document.getElementById('reminder-back-button').addEventListener('click', () => showPage('sign-in-page'));
   
   // Menu Page
   document.getElementById('start-game-button').addEventListener('click', startGame);
@@ -144,6 +156,15 @@ function handleSignIn() {
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
       currentUser = userCredential.user;
+      
+      // Check if email is verified
+      if (!currentUser.emailVerified) {
+        // Show verification reminder page
+        showPage('verification-reminder-page');
+        document.getElementById('reminder-email').textContent = currentUser.email;
+        return;
+      }
+      
       // Retrieve the username from the database
       db.ref('users/' + currentUser.uid + '/username').once('value').then(snapshot => {
         document.getElementById('user-welcome').textContent = snapshot.val() || currentUser.email;
@@ -181,23 +202,36 @@ function handleCreateAccount() {
   auth.createUserWithEmailAndPassword(email, password)
     .then(userCredential => {
       currentUser = userCredential.user;
-      document.getElementById('user-welcome').textContent = username;
-      errorElement.classList.add('hidden');
+      
+      // Send email verification - use production URL for verification emails
+      const verificationUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'https://arithmetic-game-bfedc.web.app'  // Production URL for local development
+        : window.location.origin;  // Current domain for production
+      
+      return currentUser.sendEmailVerification({
+        url: verificationUrl,
+        handleCodeInApp: false
+      });
+    })
+    .then(() => {
+      // Store user data in database
+      db.ref('users/' + currentUser.uid).set({
+        email: currentUser.email,
+        username: username,
+        emailVerified: false,
+        stats: { totalProblems: 0, correctAnswers: 0 },
+        scores: {}
+      });
+      
+      // Show verification page
+      showPage('verification-page');
+      document.getElementById('verification-email').textContent = currentUser.email;
+      
       // Clear the input fields
       document.getElementById('username-input').value = '';
       document.getElementById('new-email').value = '';
       document.getElementById('new-password').value = '';
       document.getElementById('confirm-password').value = '';
-      
-      // Initialize user stats and store the username in the database
-      db.ref('users/' + currentUser.uid).set({
-        email: currentUser.email,
-        username: username,
-        stats: { totalProblems: 0, correctAnswers: 0 },
-        scores: {}
-      });
-      
-      showPage('menu-page');
     })
     .catch(error => {
       errorElement.textContent = error.message;
@@ -212,10 +246,126 @@ function handleSignOut() {
   });
 }
 
+// Email verification functions
+function resendVerificationEmail() {
+  if (!currentUser) {
+    console.error('No current user found');
+    return;
+  }
+  
+  // Use production URL for verification emails
+  const verificationUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'https://arithmetic-game-bfedc.web.app'  // Production URL for local development
+    : window.location.origin;  // Current domain for production
+  
+  currentUser.sendEmailVerification({
+    url: verificationUrl,
+    handleCodeInApp: false
+  })
+  .then(() => {
+    // Update message on both verification pages
+    const verificationMessage = document.getElementById('verification-message');
+    const reminderMessage = document.getElementById('reminder-message');
+    
+    if (verificationMessage) {
+      verificationMessage.textContent = 'Verification email sent! Please check your inbox.';
+      verificationMessage.classList.remove('hidden');
+      verificationMessage.style.color = 'green';
+    }
+    
+    if (reminderMessage) {
+      reminderMessage.textContent = 'Verification email sent! Please check your inbox.';
+      reminderMessage.classList.remove('hidden');
+      reminderMessage.style.color = 'green';
+    }
+  })
+  .catch(error => {
+    console.error('Error sending verification email:', error);
+    // Update error message on both verification pages
+    const verificationMessage = document.getElementById('verification-message');
+    const reminderMessage = document.getElementById('reminder-message');
+    
+    if (verificationMessage) {
+      verificationMessage.textContent = 'Error sending verification email: ' + error.message;
+      verificationMessage.classList.remove('hidden');
+      verificationMessage.style.color = 'red';
+    }
+    
+    if (reminderMessage) {
+      reminderMessage.textContent = 'Error sending verification email: ' + error.message;
+      reminderMessage.classList.remove('hidden');
+      reminderMessage.style.color = 'red';
+    }
+  });
+}
+
+function checkEmailVerification() {
+  if (!currentUser) {
+    console.error('No current user found');
+    return;
+  }
+  
+  currentUser.reload().then(() => {
+    if (currentUser.emailVerified) {
+      // Update database to reflect verification
+      db.ref('users/' + currentUser.uid + '/emailVerified').set(true);
+      
+      // Retrieve the username from the database
+      db.ref('users/' + currentUser.uid + '/username').once('value').then(snapshot => {
+        document.getElementById('user-welcome').textContent = snapshot.val() || currentUser.email;
+      });
+      
+      showPage('menu-page');
+    } else {
+      // Update message on both verification pages
+      const verificationMessage = document.getElementById('verification-message');
+      const reminderMessage = document.getElementById('reminder-message');
+      
+      if (verificationMessage) {
+        verificationMessage.textContent = 'Email not verified yet. Please check your inbox and click the verification link.';
+        verificationMessage.classList.remove('hidden');
+        verificationMessage.style.color = 'orange';
+      }
+      
+      if (reminderMessage) {
+        reminderMessage.textContent = 'Email not verified yet. Please check your inbox and click the verification link.';
+        reminderMessage.classList.remove('hidden');
+        reminderMessage.style.color = 'orange';
+      }
+    }
+  }).catch(error => {
+    console.error('Error checking email verification:', error);
+    // Update error message on both verification pages
+    const verificationMessage = document.getElementById('verification-message');
+    const reminderMessage = document.getElementById('reminder-message');
+    
+    if (verificationMessage) {
+      verificationMessage.textContent = 'Error checking verification status: ' + error.message;
+      verificationMessage.classList.remove('hidden');
+      verificationMessage.style.color = 'red';
+    }
+    
+    if (reminderMessage) {
+      reminderMessage.textContent = 'Error checking verification status: ' + error.message;
+      reminderMessage.classList.remove('hidden');
+      reminderMessage.style.color = 'red';
+    }
+  });
+}
+
 // Listen for auth state changes
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUser = user;
+    
+    // Check if email is verified
+    if (!user.emailVerified) {
+      // Show verification page if not verified
+      showPage('verification-reminder-page');
+      document.getElementById('reminder-email').textContent = user.email;
+      return;
+    }
+    
     db.ref('users/' + currentUser.uid + '/username').once('value').then(snapshot => {
       document.getElementById('user-welcome').textContent = snapshot.val() || currentUser.email;
     });
